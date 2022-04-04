@@ -1,15 +1,18 @@
-import Link from 'next/link'
-import Layout from '../components/Layout'
+import type { ReactElement } from "react";
+// import NestedLayout from "../components/nested-layout";
+import GameContent from "../components/GameContent";
+import Layout from "../components/Layout";
 
-const IndexPage = () => (
-  <Layout title="Home | Next.js + TypeScript Example">
-    <h1>Hello Next.js 👋</h1>
-    <p>
-      <Link href="/about">
-        <a>About</a>
-      </Link>
-    </p>
-  </Layout>
-)
+const IndexPage = () => {
+  return (
+    <>
+      <GameContent />
+    </>
+  );
+};
 
-export default IndexPage
+IndexPage.getLayout = function getLayout(page: ReactElement) {
+  return <Layout>{page}</Layout>;
+};
+
+export default IndexPage;
