@@ -1,5 +1,5 @@
 import { Button } from "@chakra-ui/react";
-import { useEthers } from "@usedapp/core";
+import { shortenAddress, useEthers } from "@usedapp/core";
 
 const WalletConnectButton = () => {
   const { activateBrowserWallet, account } = useEthers();
@@ -9,9 +9,10 @@ const WalletConnectButton = () => {
       onClick={() => {
         activateBrowserWallet();
       }}
-      bgColor="green.600"
+      bgColor="green.500"
+      minW={"9rem"}
     >
-      {account ? account : "Connect Wallet"}
+      {account ? shortenAddress(account) : "Connect Wallet"}
     </Button>
   );
 };
