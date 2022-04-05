@@ -1,43 +1,21 @@
-# TypeScript Next.js example
+# zkAutoChess
 
-This is a really simple project that shows the usage of Next.js with TypeScript.
+zkAutoChess is an on-chain auto chess strategy game powered by zero knowledge proof.
 
-## Deploy your own
+## Overview
 
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=next-example) or preview live with [StackBlitz](https://stackblitz.com/github/vercel/next.js/tree/canary/examples/with-typescript)
+Auto Chess was originated from a custom map created by Drodo Games for Dota 2. The game consist of 2 players deploying pieces on the board, and when both done the deployment chess pieces will battle automatically. The simple gamplay is getting popular while famous game studios making their own version, for example Teamfight Tatics in League of Legends or Clash Mini developed by Supercell. The game is not possible on chain without zero knowledge as both players will be able to see each others setup which take away a lot of fun.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/vercel/next.js/tree/canary/examples/with-typescript&project-name=with-typescript&repository-name=with-typescript)
+## Use Cases
 
-## How to use it?
+1. Game is great at onboarding new users and testing new technology. With auto chess as a simple but flexible gamplay, a zero knowledge version of the game can introduce zero knowledge proof to wider audience while auto chess is a trending game.
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init) or [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/) to bootstrap the example:
+2. The game also introduce game NFT as those playable pieces so it will be a good demostration of zero knowledge NFT too.
 
-```bash
-npx create-next-app --example with-typescript with-typescript-app
-# or
-yarn create next-app --example with-typescript with-typescript-app
-# or
-pnpm create next-app -- --example with-typescript with-typescript-app
-```
+## Competitive Analysis
 
-Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+We are not able to find a lot of existing zero knowledge games at the moment. While Dark Forest proves the potential of zero knowledge on chain game there are a lot to be explored in this field. Major competitors are as mentioned, Teamfight Tactics and Clash Mini that are attracting huge number of players with great performance and graphic. ZkAutoChess needs to be carefully designed and keep evolving to remain competitive and attractive to players who are used to tranditional games by well-known studio.
 
-## Notes
+## Roadmap
 
-This example shows how to integrate the TypeScript type system into Next.js. Since TypeScript is supported out of the box with Next.js, all we have to do is to install TypeScript.
-
-```
-npm install --save-dev typescript
-```
-
-To enable TypeScript's features, we install the type declarations for React and Node.
-
-```
-npm install --save-dev @types/react @types/react-dom @types/node
-```
-
-When we run `next dev` the next time, Next.js will start looking for any `.ts` or `.tsx` files in our project and builds it. It even automatically creates a `tsconfig.json` file for our project with the recommended settings.
-
-Next.js has built-in TypeScript declarations, so we'll get autocompletion for Next.js' modules straight away.
-
-A `type-check` script is also added to `package.json`, which runs TypeScript's `tsc` CLI in `noEmit` mode to run type-checking separately. You can then include this, for example, in your `test` scripts.
+The first version of zkAutoChess will be as simple as deploy and battle auto chess game that is fully on chain. While the auto battling logic can get very complicated we are going to keep pieces simple but extensible. We are going to add more different pieces to make the gameplay rich and allow players to explore different strategies.
