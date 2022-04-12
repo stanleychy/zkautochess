@@ -8,14 +8,15 @@ pragma circom 2.0.0;
 */
 function PieceCost(id) {
     if (id == 0) {
-        return 1;
+        return 0;
     } else if (id == 1) {
-        return 2;
+        return 1;
     } else if (id == 2) {
+        return 2;
+    } else if (id == 3) {
         return 3;
-    }
-    else {
-        assert(0);
+    } else {
+        assert(id < 4 && id>=0);
         return 0;
     }
 }
