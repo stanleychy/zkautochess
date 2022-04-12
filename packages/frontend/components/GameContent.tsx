@@ -135,7 +135,6 @@ const GameContent = () => {
         <Heading mt={"15px"}>Remaining Cost: {remainingCost}</Heading>
         <TableContainer>
           <Table size={"sm"}>
-            <TableCaption placement={"top"}>Available Pieces</TableCaption>
             <Thead>
               <Tr>
                 <Th>Piece</Th>

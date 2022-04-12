@@ -20,8 +20,8 @@ const GamePieceTableRow = ({
       <Td isNumeric>{gamePiece.range}</Td>
       <Td isNumeric>{gamePiece.cost}</Td>
       <Td w={"110px"} h={"75px"}>
-        {activeGridIndex >= 0 && remainingCost >= gamePiece.cost && (
-          <Button size="sm" colorScheme={"blue"} onClick={onPieceSelect}>
+        {remainingCost >= gamePiece.cost && (
+          <Button size="md" colorScheme={"blue"} onClick={onPieceSelect}>
             Select
           </Button>
         )}
