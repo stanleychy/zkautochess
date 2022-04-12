@@ -1,17 +1,8 @@
-import { Center } from "@chakra-ui/react";
 import Head from "next/head";
 import { ReactNode } from "react";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
-import {
-  Mainnet,
-  Harmony,
-  Hardhat,
-  DAppProvider,
-  useEtherBalance,
-  useEthers,
-  Config,
-} from "@usedapp/core";
+import { Mainnet, Harmony, DAppProvider, Config } from "@usedapp/core";
 import { getDefaultProvider } from "ethers";
 
 type LayoutProps = {
@@ -24,8 +15,6 @@ const Layout = ({ children, title = "zkAutoChess" }: LayoutProps) => {
     readOnlyChainId: Harmony.chainId,
     readOnlyUrls: {
       [Mainnet.chainId]: getDefaultProvider("mainnet"),
-      // [Harmony.chainId]: getDefaultProvider("mainnet"),
-      // [Hardhat.chainId]: getDefaultProvider("mainnet"),
     },
     autoConnect: false,
   };
@@ -40,7 +29,7 @@ const Layout = ({ children, title = "zkAutoChess" }: LayoutProps) => {
       <header>
         <Navbar />
       </header>
-      <main style={{ minHeight: "90vh" }}>{children}</main>
+      <main style={{ minHeight: "90vh", overflow: "hidden" }}>{children}</main>
       <Footer />
     </DAppProvider>
   );
