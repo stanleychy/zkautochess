@@ -1,7 +1,6 @@
 import {
   Box,
   Center,
-  Grid,
   Heading,
   HStack,
   SimpleGrid,
@@ -24,6 +23,7 @@ import { useState } from "react";
 import GamePieceTableRow from "./GamePieceTableRow";
 import IGamePiece from "./GamePiece/IGamePiece";
 import IGameGrid from "./Playfield/IGameGrid";
+import { useEthers } from "@usedapp/core";
 
 const EMPTY_GAME_FIELD: IGameGrid[] = [
   {
@@ -55,6 +55,8 @@ const EMPTY_GAME_FIELD: IGameGrid[] = [
 const COST = 8;
 
 const GameContent = () => {
+  const { account } = useEthers();
+
   const [gameField, setGameField] = useState<IGameGrid[]>(EMPTY_GAME_FIELD);
   const [remainingCost, setRemainingCost] = useState(COST);
   const [activeGridIndex, setActiveGridIndex] = useState(-1);
@@ -91,7 +93,10 @@ const GameContent = () => {
     setGameField(EMPTY_GAME_FIELD);
   };
 
-  const onSubmitClick = () => {};
+  const onSubmitClick = () => {
+    if (!account) return;
+    console.log("Success");
+  };
 
   return (
     <Center p={"10px"}>
