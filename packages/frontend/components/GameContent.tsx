@@ -95,7 +95,15 @@ const GameContent = () => {
 
   const onSubmitClick = () => {
     if (!account) return;
-    console.log("Success");
+    const input = {
+      input: gameField.map((gameGrid) => {
+        if (!gameGrid.gamePiece) return 0;
+        return gameGrid.gamePiece.pieceId;
+      }),
+      salt: crypto.getRandomValues(new BigUint64Array(1))[0],
+    };
+
+    console.log(input);
   };
 
   return (
