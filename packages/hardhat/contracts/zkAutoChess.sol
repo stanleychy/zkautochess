@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -7,7 +7,31 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title zkAutoChess
  * @dev On-chain auto chess battle game
  */
+interface IVerifier {
+    function verifyProof(
+        uint256[2] memory a,
+        uint256[2][2] memory b,
+        uint256[2] memory c,
+        uint256[10] memory input
+    ) external view returns (bool);
+}
+
 contract zkAutoChess is Ownable {
+    address verifierContract;
+
+    enum BattleEventType {
+        Create,
+        Join,
+        Reveal,
+        Result
+    }
+
+    event BattleLog(
+        uint256 battleId,
+        BattleEventType eventType,
+        address account
+    );
+
     /**
      * @dev Chess Piece structure and mapping defintion
      */
@@ -20,16 +44,15 @@ contract zkAutoChess is Ownable {
 
     mapping(uint256 => ChessPiece) public chessPieces;
 
-    /**
-     * @dev Battle structure and mapping defintion
-     */
+    struct BattlePlayerState {
+        uint256 fieldHash;
+        uint256[] field;
+        uint256 salt;
+    }
+
     struct Battle {
         address playerA;
-        uint256[] playerAField;
-        uint256 playerASalt;
         address playerB;
-        uint256[] playerBField;
-        uint256 playerBSalt;
         bool canJoin;
         bool canReveal;
         address winner;
@@ -37,25 +60,32 @@ contract zkAutoChess is Ownable {
 
     uint256 lastBattleId;
     mapping(uint256 => Battle) public battles;
+    mapping(uint256 => mapping(address => BattlePlayerState))
+        public battlePlayers;
     mapping(address => uint256[]) public playerBattleIds;
 
-    constructor() {
-        battles[0] = Battle(
-            msg.sender,
-            new uint256[](8),
-            0,
-            address(0),
-            new uint256[](8),
-            0,
-            true,
-            false,
-            address(0)
+    modifier battleReadyToStart(uint256 battleId) {
+        require(battleId <= lastBattleId, "Battle does not exist");
+        require(battles[battleId].playerB != address(0), "PlayerB is missing");
+        _;
+    }
+
+    modifier onlyPlayersOfBattle(uint256 battleId) {
+        require(
+            msg.sender == battles[battleId].playerA ||
+                msg.sender == battles[battleId].playerB,
+            "Only players of battle allowed"
         );
-        playerBattleIds[msg.sender].push(0);
+        _;
+    }
+
+    constructor(address _verifier) {
+        verifierContract = _verifier;
     }
 
     /**
-     * @dev Set new or update chess piece
+     * @dev Set new chess piece
+     * @dev Update if chessPieceId already exists
      * @param chessPieceId targeted chessPieceId
      * @param name chess piece name
      * @param health chess piece health
@@ -74,37 +104,81 @@ contract zkAutoChess is Ownable {
     }
 
     /**
-     * @dev Create a new battle
-     * @param battleId targeted battleId
+     * @dev Get information of chess piece
+     * @param chessPieceId targeted chessPieceId
+     * @return ChessPiece
      */
-    function getBattleResult(uint256 battleId) public returns (bytes32) {
-        require(battleId <= lastBattleId, "Battle does not exist");
-        Battle memory battle = battles[battleId];
-        require(battle.playerB != address(0), "PlayerB is missing");
-        require(battle.canReveal, "Battle not ready for reveal");
-        require(battle.playerASalt > 0, "PlayerA not yet reveal");
-        require(battle.playerBSalt > 0, "PlayerB not yet reveal");
-        return "Test";
+    function getChessPiece(uint256 chessPieceId)
+        public
+        view
+        returns (ChessPiece memory)
+    {
+        return chessPieces[chessPieceId];
+    }
+
+    /**
+     * @dev Call by player to deploy their move
+     * @param battleId targeted battle
+     * @param hash of player move
+     */
+    function deploy(uint256 battleId, uint256 hash)
+        public
+        battleReadyToStart(battleId)
+        onlyPlayersOfBattle(battleId)
+    {
+        battlePlayers[battleId][msg.sender].fieldHash = hash;
+
+        if (
+            battlePlayers[battleId][battles[battleId].playerA].fieldHash != 0 &&
+            battlePlayers[battleId][battles[battleId].playerB].fieldHash != 0
+        ) {
+            battles[battleId].canReveal = true;
+        }
+    }
+
+    /**
+     * @dev Call by player to reveal their move
+     * @param battleId targeted battle
+     * @param input player's input
+     * @param salt player's salt
+     */
+    function reveal(
+        uint256 battleId,
+        uint256[8] calldata input,
+        uint256 salt,
+        uint256[2] calldata a,
+        uint256[2][2] calldata b,
+        uint256[2] calldata c
+    ) public battleReadyToStart(battleId) onlyPlayersOfBattle(battleId) {
+        require(battles[battleId].canReveal, "Battle not ready for reveal");
+        uint256[10] memory verifierInput;
+        verifierInput[0] = battlePlayers[battleId][msg.sender].fieldHash;
+        for (uint256 i = 0; i < input.length; i++) {
+            verifierInput[i + 1] = input[i];
+        }
+        verifierInput[9] = salt;
+        require(
+            IVerifier(verifierContract).verifyProof(a, b, c, verifierInput),
+            "Invalid proof"
+        );
+        battlePlayers[battleId][msg.sender].field = input;
+        battlePlayers[battleId][msg.sender].salt = salt;
     }
 
     /**
      * @dev Create a new battle
      */
-    function createBattle() public returns (uint256) {
+    function createBattle() public {
         lastBattleId++;
-        playerBattleIds[msg.sender].push(lastBattleId);
         battles[lastBattleId] = Battle(
             msg.sender,
-            new uint256[](8),
-            0,
             address(0),
-            new uint256[](8),
-            0,
             true,
             false,
             address(0)
         );
-        return lastBattleId;
+        playerBattleIds[msg.sender].push(lastBattleId);
+        emit BattleLog(lastBattleId, BattleEventType.Create, msg.sender);
     }
 
     /**
@@ -117,6 +191,7 @@ contract zkAutoChess is Ownable {
         battles[battleId].canJoin = false;
         playerBattleIds[msg.sender].push(lastBattleId);
         battles[battleId].playerB = msg.sender;
+        emit BattleLog(lastBattleId, BattleEventType.Join, msg.sender);
     }
 
     /**
@@ -131,7 +206,21 @@ contract zkAutoChess is Ownable {
      * @param battleId targeted battleId
      */
     function getBattle(uint256 battleId) public view returns (Battle memory) {
+        require(battleId <= lastBattleId, "Battle does not exist");
         return battles[battleId];
+    }
+
+    /**
+     * @dev Get player information of a battle
+     * @param battleId targeted battleId
+     */
+    function getBattlePlayerState(uint256 battleId)
+        public
+        view
+        returns (uint256)
+    {
+        require(battleId <= lastBattleId, "Battle does not exist");
+        return battlePlayers[battleId][msg.sender].fieldHash;
     }
 
     /**

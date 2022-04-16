@@ -23,3 +23,6 @@ snarkjs zkey export verificationkey zkAutoChess_0001.zkey verification_key.json
 
 # Generate the Solidity code that allows verifying proofs on Ethereum blockchain
 snarkjs zkey export solidityverifier zkAutoChess_0001.zkey ../contracts/zkAutoChessVerifier.sol
+
+# Use snarkjs to generate the parameters of the verifyProof call to Verifier smart contract
+snarkjs generatecall
