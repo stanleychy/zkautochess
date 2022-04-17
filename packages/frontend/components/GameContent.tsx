@@ -25,6 +25,10 @@ import IGamePiece from "./GamePiece/IGamePiece";
 import IGameGrid from "./Playfield/IGameGrid";
 import { useEthers } from "@usedapp/core";
 
+type GameContentProps = {
+  battleId: number;
+};
+
 const EMPTY_GAME_FIELD: IGameGrid[] = [
   {
     gamePiece: undefined,
@@ -54,7 +58,7 @@ const EMPTY_GAME_FIELD: IGameGrid[] = [
 
 const COST = 8;
 
-const GameContent = () => {
+const GameContent = ({ battleId }: GameContentProps) => {
   const { account } = useEthers();
 
   const [gameField, setGameField] = useState<IGameGrid[]>(EMPTY_GAME_FIELD);
@@ -104,11 +108,13 @@ const GameContent = () => {
     };
 
     console.log(input);
+    console.log(window.localStorage);
   };
 
   return (
     <Center p={"10px"}>
       <VStack>
+        <Text>Current Battle ID: {battleId}</Text>
         <Heading>Your Playfield</Heading>
         <Text my={"10px"}>Press the grid and select the piece below</Text>
         <SimpleGrid
