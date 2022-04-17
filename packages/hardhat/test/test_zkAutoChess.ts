@@ -108,6 +108,11 @@ describe("zkAutoChess", function () {
       salt: 185234789123,
     };
 
+    const valid_input_B = {
+      playfield: [2, 2, 2, 0, 2, 0, 0, 0],
+      salt: 185234789123,
+    };
+
     const invalid_input = {
       playfield: [0, 3, 0, 0, 2, 0, 3, 0],
       salt: 185234789123,
@@ -134,24 +139,37 @@ describe("zkAutoChess", function () {
     it("Player can reveal their move", async function () {
       await zkAutoChess.createBattle();
       await zkAutoChess.connect(addr1).joinBattle(1);
+
       const { proof, publicSignals } = await snarkjs.groth16.fullProve(
         valid_input_A,
         "./circuits/zkAutoChess_js/zkAutoChess.wasm",
         "./circuits/zkAutoChess_0001.zkey"
       );
+
       await zkAutoChess.deploy(1, publicSignals[0]);
       await zkAutoChess.connect(addr1).deploy(1, publicSignals[0]);
 
-      const calldata = await snarkjs.groth16.exportSolidityCallData(
-        proof,
-        publicSignals
-      );
-      console.log(typeof calldata);
-      // await zkAutoChess.reveal(1, field, salt, a, b, c);
+      const argv = [
+        proof["pi_a"][0],
+        proof["pi_a"][1],
+        proof["pi_b"][0][1],
+        proof["pi_b"][0][0],
+        proof["pi_b"][1][1],
+        proof["pi_b"][1][0],
+        proof["pi_c"][0],
+        proof["pi_c"][1],
+      ];
+
+      const a = [argv[0], argv[1]];
+      const b = [
+        [argv[2], argv[3]],
+        [argv[4], argv[5]],
+      ];
+      const c = [argv[6], argv[7]];
+      const field = publicSignals.slice(1, 9);
+      const salt = publicSignals[9];
+      await zkAutoChess.reveal(1, field, salt, a, b, c);
+      await zkAutoChess.connect(addr1).reveal(1, field, salt, a, b, c);
     });
-
-    it("Only player in the battle can deploy their move", async function () {});
-
-    it("Only player in the battle can reveal their move", async function () {});
   });
 });
