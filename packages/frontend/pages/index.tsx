@@ -22,7 +22,11 @@ const IndexPage = () => {
             }}
           />
         ) : (
-          <GameLanding />
+          <GameLanding
+            handleBattleJoin={(battleId: number) => {
+              setActiveBattleId(battleId);
+            }}
+          />
         )
       ) : (
         <Heading p={4}>

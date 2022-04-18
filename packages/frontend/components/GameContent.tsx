@@ -28,6 +28,8 @@ import IGamePiece from "./GamePiece/IGamePiece";
 import IGameGrid from "./Playfield/IGameGrid";
 import { useEthers } from "@usedapp/core";
 import { ArrowBackIcon } from "@chakra-ui/icons";
+import { connectContract, deploy } from "../contracts/zkAutoChess";
+import { ethers } from "ethers";
 
 type GameContentProps = {
   battleId: number;
@@ -71,6 +73,8 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   const [activeGridIndex, setActiveGridIndex] = useState(-1);
   const [isGameFieldEmpty, setIsGameFieldEmpty] = useState(true);
 
+  const zkAutoChessAddress = process.env.NEXT_PUBLIC_ZKAUTOCHESS_CONTRACT;
+
   const handlePieceSelect = (gamePiece: IGamePiece) => {
     if (gamePiece.cost > remainingCost) return;
     const newGameFields = gameField.map((gameGrid, index) => {
@@ -102,7 +106,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
     setGameField(EMPTY_GAME_FIELD);
   };
 
-  const onSubmitClick = () => {
+  const onSubmitClick = async () => {
     if (!account) return;
     const input = {
       input: gameField.map((gameGrid) => {
@@ -111,8 +115,9 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
       }),
       salt: crypto.getRandomValues(new BigUint64Array(1))[0],
     };
-
-    console.log(input);
+    const contract: ethers.Contract = await connectContract(zkAutoChessAddress);
+    // const hash = await deploy(contract, battleId, input);
+    console.log(hash);
     console.log(window.localStorage);
   };
 

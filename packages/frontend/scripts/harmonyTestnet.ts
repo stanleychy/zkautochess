@@ -5,9 +5,9 @@ export const HarmonyTestnet: Chain = {
   chainName: "HarmonyTestnet",
   isTestChain: true,
   isLocalChain: false,
-  multicallAddress: "0x0000000000000000000000000000000000000000",
+  multicallAddress: "0xFE4980f62D708c2A84D3929859Ea226340759320",
   getExplorerAddressLink: (address: string) =>
-    `https://explorer.pops.one/address/${address}`,
+    `https://explorer.testnet.harmony.one/address/${address}`,
   getExplorerTransactionLink: (transactionHash: string) =>
-    `https://explorer.pops.one/tx/${transactionHash}`,
+    `https://explorer.testnet.harmony.one/tx/${transactionHash}`,
 };
