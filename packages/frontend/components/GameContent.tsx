@@ -1,13 +1,16 @@
 import {
   Box,
   Center,
+  Flex,
   Heading,
   HStack,
   SimpleGrid,
+  Spacer,
   VStack,
 } from "@chakra-ui/layout";
 import {
   Button,
+  IconButton,
   Table,
   TableCaption,
   TableContainer,
@@ -24,9 +27,11 @@ import GamePieceTableRow from "./GamePieceTableRow";
 import IGamePiece from "./GamePiece/IGamePiece";
 import IGameGrid from "./Playfield/IGameGrid";
 import { useEthers } from "@usedapp/core";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 
 type GameContentProps = {
   battleId: number;
+  handleBackButtonClick: () => void;
 };
 
 const EMPTY_GAME_FIELD: IGameGrid[] = [
@@ -58,7 +63,7 @@ const EMPTY_GAME_FIELD: IGameGrid[] = [
 
 const COST = 8;
 
-const GameContent = ({ battleId }: GameContentProps) => {
+const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   const { account } = useEthers();
 
   const [gameField, setGameField] = useState<IGameGrid[]>(EMPTY_GAME_FIELD);
@@ -114,7 +119,19 @@ const GameContent = ({ battleId }: GameContentProps) => {
   return (
     <Center p={"10px"}>
       <VStack>
-        <Text>Current Battle ID: {battleId}</Text>
+        <Flex width={"100%"}>
+          <Box p="2">
+            <IconButton
+              aria-label={"Back"}
+              icon={<ArrowBackIcon />}
+              onClick={handleBackButtonClick}
+            />
+          </Box>
+          <Spacer />
+          <Box p="2">
+            <Text fontSize="xl">Current Battle ID: {battleId}</Text>
+          </Box>
+        </Flex>
         <Heading>Your Playfield</Heading>
         <Text my={"10px"}>Press the grid and select the piece below</Text>
         <SimpleGrid

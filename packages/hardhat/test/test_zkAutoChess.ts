@@ -93,6 +93,13 @@ describe("zkAutoChess", function () {
       expect(battle["canJoin"]).to.equal(false);
     });
 
+    it("Should reject player to re-join a battle", async function () {
+      await zkAutoChess.createBattle();
+      await expect(zkAutoChess.joinBattle(1)).to.be.revertedWith(
+        "Player already in this Battle"
+      );
+    });
+
     it("Should reject player to join if battle is full", async function () {
       await zkAutoChess.createBattle();
       await zkAutoChess.connect(addr1).joinBattle(1);

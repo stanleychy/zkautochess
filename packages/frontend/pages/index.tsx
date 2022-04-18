@@ -1,45 +1,36 @@
-import {
-  Button,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
-  Text,
-} from "@chakra-ui/react";
+import { Center, Heading } from "@chakra-ui/react";
 import GameContent from "../components/GameContent";
 import { useEthers } from "@usedapp/core";
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { ArrowUpIcon } from "@chakra-ui/icons";
 import { useState } from "react";
+import GameLanding from "../components/GameLanding";
 
 const IndexPage = () => {
   const { account } = useEthers();
 
   const [activeBattleId, setActiveBattleId] = useState<number>(0);
-  const [battleIds, setBattleIds] = useState<number[]>([1, 2, 3]);
+  const [battleIds, setBattleIds] = useState<number[]>([]);
+
   return (
-    <>
-      {activeBattleId <= 0 ? (
-        <>
-          <Text>Select Battle To Start</Text>
-          <Menu>
-            <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-              {activeBattleId}
-            </MenuButton>
-            <MenuList>
-              {battleIds.map((battleId) => {
-                return (
-                  <MenuItem onClick={() => setActiveBattleId(battleId)}>
-                    {battleId}
-                  </MenuItem>
-                );
-              })}
-            </MenuList>
-          </Menu>
-        </>
+    <Center>
+      {account ? (
+        activeBattleId > 0 ? (
+          <GameContent
+            battleId={activeBattleId}
+            handleBackButtonClick={() => {
+              setActiveBattleId(0);
+            }}
+          />
+        ) : (
+          <GameLanding />
+        )
       ) : (
-        <GameContent battleId={activeBattleId} />
+        <Heading p={4}>
+          Connect Your Wallet To Start
+          <ArrowUpIcon />
+        </Heading>
       )}
-    </>
+    </Center>
   );
 };
 

@@ -188,6 +188,10 @@ contract zkAutoChess is Ownable {
     function joinBattle(uint256 battleId) public {
         require(battleId <= lastBattleId, "Battle does not exist");
         require(battles[battleId].canJoin, "Battle is full");
+        require(
+            msg.sender != battles[battleId].playerA,
+            "Player already in this Battle"
+        );
         battles[battleId].canJoin = false;
         playerBattleIds[msg.sender].push(lastBattleId);
         battles[battleId].playerB = msg.sender;
