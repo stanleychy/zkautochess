@@ -2,14 +2,14 @@ const snarkjs = require("snarkjs");
 
 type playfieldInputType = {
   playfield: number[];
-  salt: number;
+  salt: bigint;
 };
 
 const generateCalldata = async (input: playfieldInputType) => {
   const { proof, publicSignals } = await snarkjs.groth16.fullProve(
     input,
-    "snark/zkAutoChess.wasm",
-    "snark/zkAutoChess_0001.zkey"
+    "/snark/zkAutoChess.wasm",
+    "/snark/zkAutoChess_0001.zkey"
   );
 
   const argv = [
@@ -28,8 +28,11 @@ const generateCalldata = async (input: playfieldInputType) => {
     [argv[4], argv[5]],
   ];
   const c = [argv[6], argv[7]];
+  const hash = publicSignals[0];
   const field = publicSignals.slice(1, 9);
   const salt = publicSignals[9];
+
+  return { hash, field, salt, a, b, c };
 };
 
 export default generateCalldata;

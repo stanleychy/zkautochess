@@ -31,7 +31,7 @@ describe("zkAutoChess", function () {
     zkAutoChess = await zkAutoChessContract.deploy(verifier.address);
     await zkAutoChess.deployed();
 
-    expect(await zkAutoChess.getLastBattleId()).to.equal(0);
+    expect(await zkAutoChess.lastBattleId()).to.equal(0);
   });
 
   describe("Chess Piece", function () {
@@ -125,7 +125,7 @@ describe("zkAutoChess", function () {
       salt: 185234789123,
     };
 
-    it("Player can deploy their move", async function () {
+    it("Should let player deploy move", async function () {
       await zkAutoChess.createBattle();
       await zkAutoChess.connect(addr1).joinBattle(1);
       const { proof, publicSignals } = await snarkjs.groth16.fullProve(
@@ -143,7 +143,80 @@ describe("zkAutoChess", function () {
       expect(battle["canReveal"]).to.be.true;
     });
 
-    it("Player can reveal their move", async function () {
+    it("Should not let player re-deploy move", async function () {
+      await zkAutoChess.createBattle();
+      await zkAutoChess.connect(addr1).joinBattle(1);
+      const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+        valid_input_A,
+        "./circuits/zkAutoChess_js/zkAutoChess.wasm",
+        "./circuits/zkAutoChess_0001.zkey"
+      );
+      let battle = await zkAutoChess.getBattle(1);
+
+      await zkAutoChess.deploy(1, publicSignals[0]);
+      expect(battle["canReveal"]).to.be.false;
+
+      await expect(zkAutoChess.deploy(1, publicSignals[0])).to.be.revertedWith(
+        "Player already deployed move"
+      );
+    });
+
+    it("Shoud let player check opponent move", async function () {
+      await zkAutoChess.createBattle();
+      await zkAutoChess.connect(addr1).joinBattle(1);
+      const playerAProof = await snarkjs.groth16.fullProve(
+        valid_input_A,
+        "./circuits/zkAutoChess_js/zkAutoChess.wasm",
+        "./circuits/zkAutoChess_0001.zkey"
+      );
+      let battle = await zkAutoChess.getBattle(1);
+
+      await zkAutoChess.deploy(1, playerAProof.publicSignals[0]);
+      expect(battle["canReveal"]).to.be.false;
+
+      const playerBProof = await snarkjs.groth16.fullProve(
+        valid_input_B,
+        "./circuits/zkAutoChess_js/zkAutoChess.wasm",
+        "./circuits/zkAutoChess_0001.zkey"
+      );
+      await zkAutoChess.connect(addr1).deploy(1, playerBProof.publicSignals[0]);
+      battle = await zkAutoChess.getBattle(1);
+      expect(battle["canReveal"]).to.be.true;
+
+      const argv = [
+        playerBProof.proof["pi_a"][0],
+        playerBProof.proof["pi_a"][1],
+        playerBProof.proof["pi_b"][0][1],
+        playerBProof.proof["pi_b"][0][0],
+        playerBProof.proof["pi_b"][1][1],
+        playerBProof.proof["pi_b"][1][0],
+        playerBProof.proof["pi_c"][0],
+        playerBProof.proof["pi_c"][1],
+      ];
+
+      const a = [argv[0], argv[1]];
+      const b = [
+        [argv[2], argv[3]],
+        [argv[4], argv[5]],
+      ];
+      const c = [argv[6], argv[7]];
+      const field = playerBProof.publicSignals.slice(1, 9);
+      const salt = playerBProof.publicSignals[9];
+
+      await zkAutoChess.connect(addr1).reveal(1, field, salt, a, b, c);
+      const playerBState = await zkAutoChess.getBattlePlayerState(
+        1,
+        await addr1.getAddress()
+      );
+      expect(
+        playerBState.field.map((x: BigNumber) => {
+          return x.toString();
+        })
+      ).to.have.members(field);
+      expect(playerBState.salt).to.be.equal(salt);
+    });
+
+    it("Should let player reveal move", async function () {
       await zkAutoChess.createBattle();
       await zkAutoChess.connect(addr1).joinBattle(1);
 

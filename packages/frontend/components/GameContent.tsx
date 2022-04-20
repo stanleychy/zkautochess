@@ -1,6 +1,7 @@
 import {
   Box,
   Center,
+  Divider,
   Flex,
   Heading,
   HStack,
@@ -19,17 +20,25 @@ import {
   Th,
   Thead,
   Tr,
+  useToast,
 } from "@chakra-ui/react";
 import GameGrid from "./Playfield/GameGrid";
 import gamePieceMapping from "./GamePiece/GamePieceMapping";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import GamePieceTableRow from "./GamePieceTableRow";
 import IGamePiece from "./GamePiece/IGamePiece";
 import IGameGrid from "./Playfield/IGameGrid";
-import { useEthers } from "@usedapp/core";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { useContractFunction, useEthers } from "@usedapp/core";
+import { ArrowBackIcon, RepeatIcon } from "@chakra-ui/icons";
 import { connectContract, deploy } from "../contracts/zkAutoChess";
-import { ethers } from "ethers";
+import { BigNumber, Contract, ethers } from "ethers";
+import generateCalldata from "../scripts/generate_calldata";
+import useContract from "../hooks/useContract";
+import {
+  BattleCache,
+  PlayerCache,
+  usePlayerCache,
+} from "../hooks/usePlayerCache";
 
 type GameContentProps = {
   battleId: number;
@@ -67,17 +76,37 @@ const COST = 8;
 
 const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   const { account } = useEthers();
+  const toast = useToast();
+  const zkAutoChessContract = useContract();
+  const { playerCache, updatePlayerCache } = usePlayerCache();
 
-  const [gameField, setGameField] = useState<IGameGrid[]>(EMPTY_GAME_FIELD);
+  const [playfield, setPlayfield] = useState<IGameGrid[]>(EMPTY_GAME_FIELD);
+  const [opponentPlayfield, setOpponentPlayfield] =
+    useState<IGameGrid[]>(EMPTY_GAME_FIELD);
+
   const [remainingCost, setRemainingCost] = useState(COST);
   const [activeGridIndex, setActiveGridIndex] = useState(-1);
-  const [isGameFieldEmpty, setIsGameFieldEmpty] = useState(true);
 
-  const zkAutoChessAddress = process.env.NEXT_PUBLIC_ZKAUTOCHESS_CONTRACT;
+  const [isRevealState, setIsRevealState] = useState(false);
+  const [isPlayfieldEmpty, setIsPlayfieldEmpty] = useState(true);
+  const [isMoveDeployed, setIsMoveDeployed] = useState(false);
+  const [isMoveRevealed, setIsMoveRevealed] = useState(false);
+  const [isOpponentDeployed, setIsOpponentDeployed] = useState(false);
+  const [isOpponentRevealed, setIsOpponentRevealed] = useState(false);
+
+  const deployPlayfieldFunction = useContractFunction(
+    zkAutoChessContract,
+    "deploy"
+  );
+
+  const revealPlayfieldFunction = useContractFunction(
+    zkAutoChessContract,
+    "reveal"
+  );
 
   const handlePieceSelect = (gamePiece: IGamePiece) => {
     if (gamePiece.cost > remainingCost) return;
-    const newGameFields = gameField.map((gameGrid, index) => {
+    const newPlayfield = playfield.map((gameGrid, index) => {
       if (index === activeGridIndex) {
         setRemainingCost(remainingCost - gamePiece.cost);
         return {
@@ -86,8 +115,8 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
       }
       return gameGrid;
     });
-    setGameField(newGameFields);
-    setIsGameFieldEmpty(false);
+    setPlayfield(newPlayfield);
+    setIsPlayfieldEmpty(false);
     setActiveGridIndex(-1);
   };
 
@@ -101,31 +130,181 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   };
 
   const onResetClick = () => {
+    if (isPlayfieldEmpty) return;
     setRemainingCost(COST);
     setActiveGridIndex(-1);
-    setGameField(EMPTY_GAME_FIELD);
+    setPlayfield(EMPTY_GAME_FIELD);
   };
 
   const onSubmitClick = async () => {
-    if (!account) return;
-    const input = {
-      input: gameField.map((gameGrid) => {
-        if (!gameGrid.gamePiece) return 0;
-        return gameGrid.gamePiece.pieceId;
-      }),
-      salt: crypto.getRandomValues(new BigUint64Array(1))[0],
-    };
-    const contract: ethers.Contract = await connectContract(zkAutoChessAddress);
-    // const hash = await deploy(contract, battleId, input);
-    console.log(hash);
-    console.log(window.localStorage);
+    if (!account || !zkAutoChessContract || isPlayfieldEmpty) return;
+    try {
+      const input = {
+        playfield: playfield.map((gameGrid) => {
+          if (!gameGrid.gamePiece) return 0;
+          return gameGrid.gamePiece.pieceId;
+        }),
+        salt: crypto.getRandomValues(new BigUint64Array(1))[0],
+      };
+      const { hash, field, salt } = await generateCalldata(input);
+      deployPlayfieldFunction.send(battleId, hash);
+      let newPlayerCache = { ...playerCache };
+      newPlayerCache[battleId] = {
+        hash: hash,
+        remainingCost: remainingCost,
+        playfield: field,
+        salt: salt,
+      };
+      updatePlayerCache(newPlayerCache);
+    } catch (error) {
+      console.log(error);
+    }
   };
+
+  const onRevealClick = async () => {
+    if (!account || !zkAutoChessContract || isPlayfieldEmpty) return;
+    try {
+      const battleCache: BattleCache = playerCache[battleId];
+      const input = {
+        playfield: battleCache.playfield,
+        salt: battleCache.salt,
+      };
+      const { hash, field, salt, a, b, c } = await generateCalldata(input);
+      revealPlayfieldFunction.send(battleId, field, salt, a, b, c);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleBattleRefresh = async () => {
+    if (!account || !zkAutoChessContract) return;
+    try {
+      const battle = await zkAutoChessContract.getBattle(battleId);
+      setIsRevealState(battle.canReveal);
+      if (battle.canReveal) {
+        const opponentAddress =
+          account == battle.playerA ? battle.playerB : battle.playerA;
+        const opponentState = await zkAutoChessContract.getBattlePlayerState(
+          battleId,
+          opponentAddress
+        );
+        if (opponentState) {
+          const opponentPlayfield = opponentState.field.map(
+            (gamePieceId: BigNumber) => {
+              const gamePiece =
+                gamePieceMapping[gamePieceId.toNumber() - 1] ?? undefined;
+              return {
+                gamePiece: gamePiece,
+              };
+            }
+          );
+          setOpponentPlayfield(opponentPlayfield.reverse());
+        }
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    switch (deployPlayfieldFunction.state.status) {
+      case "Success":
+        setIsMoveDeployed(true);
+        toast({
+          title: "Playfield Deployed",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        handleBattleRefresh();
+        break;
+      case "Mining":
+        toast({
+          title: "Deploying Playfield...",
+          status: "info",
+          duration: 10000,
+          isClosable: true,
+        });
+        break;
+      case "PendingSignature":
+        console.log("deployPlayfield PendingSignature");
+        break;
+      case "Exception":
+      case "Fail":
+        toast({
+          title: "Deploy Playfield Error",
+          description: deployPlayfieldFunction.state.errorMessage,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+      default:
+        break;
+    }
+  }, [deployPlayfieldFunction.state]);
+
+  useEffect(() => {
+    switch (revealPlayfieldFunction.state.status) {
+      case "Success":
+        setIsMoveRevealed(true);
+        toast({
+          title: "Playfield Revealed",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+      case "Mining":
+        toast({
+          title: "Revealing Playfield...",
+          status: "info",
+          duration: 10000,
+          isClosable: true,
+        });
+        break;
+      case "PendingSignature":
+        console.log("revealPlayfield PendingSignature");
+        break;
+      case "Exception":
+      case "Fail":
+        toast({
+          title: "Reveal Playfield Error",
+          description: revealPlayfieldFunction.state.errorMessage,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+      default:
+        break;
+    }
+  }, [revealPlayfieldFunction.state]);
+
+  useEffect(() => {
+    const battleCache: BattleCache = playerCache[battleId];
+    if (battleCache) {
+      const playfield: IGameGrid[] = battleCache.playfield.map(
+        (gamePieceId: number) => {
+          const gamePiece = gamePieceMapping[gamePieceId - 1] ?? undefined;
+          if (gamePiece) {
+            setIsPlayfieldEmpty(false);
+          }
+          return {
+            gamePiece: gamePiece,
+          };
+        }
+      );
+      setRemainingCost(battleCache.remainingCost);
+      setPlayfield(playfield);
+    }
+  }, [playerCache]);
 
   return (
     <Center p={"10px"}>
       <VStack>
-        <Flex width={"100%"}>
-          <Box p="2">
+        <Flex width={"100%"} justifyContent={"center"} p="2">
+          <Box>
             <IconButton
               aria-label={"Back"}
               icon={<ArrowBackIcon />}
@@ -133,11 +312,39 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
             />
           </Box>
           <Spacer />
-          <Box p="2">
-            <Text fontSize="xl">Current Battle ID: {battleId}</Text>
-          </Box>
+          <Flex>
+            <Text fontSize="xl" mr={2}>{`Battle ID: ${battleId} - ${
+              isRevealState ? "Reveal" : "Deploy"
+            } Phase`}</Text>
+            <IconButton
+              aria-label="refresh"
+              size={"sm"}
+              icon={<RepeatIcon />}
+              onClick={handleBattleRefresh}
+            />
+          </Flex>
         </Flex>
-        <Heading>Your Playfield</Heading>
+        <Heading size={"md"}>Opponent Playfield</Heading>
+        <SimpleGrid
+          templateRows="repeat(2, 1fr)"
+          templateColumns="repeat(4, 1fr)"
+          gap={2}
+          border={"1px"}
+          p={"5px"}
+        >
+          {opponentPlayfield.map((gameGrid, index) => {
+            return (
+              <Button
+                key={`opponentGameGrid_${index}`}
+                minW={"60px"}
+                minH={"60px"}
+              >
+                {gameGrid.gamePiece ? gameGrid.gamePiece.pieceIcon : ""}
+              </Button>
+            );
+          })}
+        </SimpleGrid>
+        <Heading size={"md"}>Your Playfield</Heading>
         <Text my={"10px"}>Press the grid and select the piece below</Text>
         <SimpleGrid
           templateRows="repeat(2, 1fr)"
@@ -146,7 +353,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           border={"1px"}
           p={"5px"}
         >
-          {gameField.map((gameGrid, index) => {
+          {playfield.map((gameGrid, index) => {
             return (
               <GameGrid
                 key={`gameGrid_${index}`}
@@ -157,22 +364,36 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
             );
           })}
         </SimpleGrid>
-        {!isGameFieldEmpty && (
-          <Box my={"20px"}>
-            <HStack>
-              <Button colorScheme={"red"} onClick={onResetClick} minW={"100px"}>
-                Reset
-              </Button>
+        <Box my={"20px"}>
+          <HStack>
+            {isRevealState ? (
               <Button
                 colorScheme={"green"}
-                onClick={onSubmitClick}
+                onClick={onRevealClick}
                 minW={"100px"}
               >
-                Submit
+                Reveal
               </Button>
-            </HStack>
-          </Box>
-        )}
+            ) : (
+              <>
+                <Button
+                  colorScheme={"red"}
+                  onClick={onResetClick}
+                  minW={"100px"}
+                >
+                  Reset
+                </Button>
+                <Button
+                  colorScheme={"green"}
+                  onClick={onSubmitClick}
+                  minW={"100px"}
+                >
+                  Submit
+                </Button>
+              </>
+            )}
+          </HStack>
+        </Box>
         <Heading mt={"15px"}>Remaining Cost: {remainingCost}</Heading>
         <TableContainer>
           <Table size={"sm"}>

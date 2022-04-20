@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import zkAutoChessArtifact from "./zkAutoChess.json";
-// const snarkjs = require("snarkjs");
+const snarkjs = require("snarkjs");
 
 let zkAutoChess: ethers.Contract;
 
@@ -26,12 +26,12 @@ export async function deploy(
   battleId: number,
   input: any
 ) {
-  //   const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-  //     input,
-  //     "../snark/zkAutoChess.wasm",
-  //     "../snark/zkAutoChess_0001.zkey"
-  //   );
-  //   const tx = await contract.deploy(battleId, publicSignals[0]);
-  //   console.log("transaction: ", tx);
-  //   return publicSignals[0];
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    input,
+    "../snark/zkAutoChess.wasm",
+    "../snark/zkAutoChess_0001.zkey"
+  );
+  const tx = await contract.deploy(battleId, publicSignals[0]);
+  console.log("transaction: ", tx);
+  return publicSignals[0];
 }

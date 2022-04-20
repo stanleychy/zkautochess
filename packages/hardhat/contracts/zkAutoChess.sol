@@ -58,10 +58,10 @@ contract zkAutoChess is Ownable {
         address winner;
     }
 
-    uint256 lastBattleId;
+    uint256 public lastBattleId;
     mapping(uint256 => Battle) public battles;
     mapping(uint256 => mapping(address => BattlePlayerState))
-        public battlePlayers;
+        public battlePlayerState;
     mapping(address => uint256[]) public playerBattleIds;
 
     modifier battleReadyToStart(uint256 battleId) {
@@ -126,11 +126,17 @@ contract zkAutoChess is Ownable {
         battleReadyToStart(battleId)
         onlyPlayersOfBattle(battleId)
     {
-        battlePlayers[battleId][msg.sender].fieldHash = hash;
+        require(
+            battlePlayerState[battleId][msg.sender].fieldHash == 0,
+            "Player already deployed move"
+        );
+        battlePlayerState[battleId][msg.sender].fieldHash = hash;
 
         if (
-            battlePlayers[battleId][battles[battleId].playerA].fieldHash != 0 &&
-            battlePlayers[battleId][battles[battleId].playerB].fieldHash != 0
+            battlePlayerState[battleId][battles[battleId].playerA].fieldHash !=
+            0 &&
+            battlePlayerState[battleId][battles[battleId].playerB].fieldHash !=
+            0
         ) {
             battles[battleId].canReveal = true;
         }
@@ -152,7 +158,7 @@ contract zkAutoChess is Ownable {
     ) public battleReadyToStart(battleId) onlyPlayersOfBattle(battleId) {
         require(battles[battleId].canReveal, "Battle not ready for reveal");
         uint256[10] memory verifierInput;
-        verifierInput[0] = battlePlayers[battleId][msg.sender].fieldHash;
+        verifierInput[0] = battlePlayerState[battleId][msg.sender].fieldHash;
         for (uint256 i = 0; i < input.length; i++) {
             verifierInput[i + 1] = input[i];
         }
@@ -161,8 +167,8 @@ contract zkAutoChess is Ownable {
             IVerifier(verifierContract).verifyProof(a, b, c, verifierInput),
             "Invalid proof"
         );
-        battlePlayers[battleId][msg.sender].field = input;
-        battlePlayers[battleId][msg.sender].salt = salt;
+        battlePlayerState[battleId][msg.sender].field = input;
+        battlePlayerState[battleId][msg.sender].salt = salt;
     }
 
     /**
@@ -199,13 +205,6 @@ contract zkAutoChess is Ownable {
     }
 
     /**
-     * @dev Get lastBattleId
-     */
-    function getLastBattleId() public view returns (uint256) {
-        return lastBattleId;
-    }
-
-    /**
      * @dev Get information of a battle
      * @param battleId targeted battleId
      */
@@ -217,14 +216,15 @@ contract zkAutoChess is Ownable {
     /**
      * @dev Get player information of a battle
      * @param battleId targeted battleId
+     * @param player targeted player
      */
-    function getBattlePlayerState(uint256 battleId)
+    function getBattlePlayerState(uint256 battleId, address player)
         public
         view
-        returns (uint256)
+        returns (BattlePlayerState memory)
     {
         require(battleId <= lastBattleId, "Battle does not exist");
-        return battlePlayers[battleId][msg.sender].fieldHash;
+        return battlePlayerState[battleId][player];
     }
 
     /**
