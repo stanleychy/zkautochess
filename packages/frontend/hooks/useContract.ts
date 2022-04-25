@@ -2,7 +2,7 @@ import { Contract, utils } from "ethers";
 import { useEffect, useState } from "react";
 
 import { useEthers } from "@usedapp/core";
-import zkAutoChessArtifact from "../contracts/zkAutoChess.json";
+import zkAutoChessArtifact from "../public/contracts/zkAutoChess.json";
 
 const useContract = () => {
   const { account, library } = useEthers();
