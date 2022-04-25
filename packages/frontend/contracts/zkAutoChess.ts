@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import zkAutoChessArtifact from "./zkAutoChess.json";
 const snarkjs = require("snarkjs");
 
+declare var window: any;
 let zkAutoChess: ethers.Contract;
 
 export async function connectContract(zkAutoChessAddress: string) {
