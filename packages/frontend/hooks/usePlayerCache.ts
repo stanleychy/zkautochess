@@ -18,13 +18,11 @@ export const usePlayerCache = () => {
   const [playerCache, setPlayerCache] = useState<PlayerCache>({});
 
   const updatePlayerLocalStorageCache = () => {
-    console.log("Update Cache")
-    console.log(JSON.stringify(playerCache))
     window.localStorage.setItem(account.toLowerCase(), JSON.stringify(playerCache));
   };
 
   useEffect(() => {
-    const cacheString: string = window.localStorage.getItem(account);
+    const cacheString: string = window.localStorage.getItem(account.toLowerCase());
     if (cacheString) {
       const playerCache: PlayerCache = JSON.parse(cacheString);
       setPlayerCache(playerCache);

@@ -12,8 +12,10 @@ import {
   Flex,
   HStack,
   Heading,
+  ListItem,
   SimpleGrid,
   Spacer,
+  UnorderedList,
   VStack,
 } from "@chakra-ui/layout";
 import {
@@ -36,6 +38,7 @@ import GameGrid from "./Playfield/GameGrid";
 import GamePieceTableRow from "./GamePieceTableRow";
 import IGameGrid from "./Playfield/IGameGrid";
 import IGamePiece from "./GamePiece/IGamePiece";
+import { floor } from "lodash";
 import gamePieceMapping from "./GamePiece/GamePieceMapping";
 import generateCalldata from "../scripts/generate_calldata";
 import useContract from "../hooks/useContract";
@@ -44,6 +47,12 @@ type GameContentProps = {
   battleId: number;
   handleBackButtonClick: () => void;
 };
+
+interface BattleGamePiece extends IGamePiece {
+  position: { x: number; y: number };
+  target: number;
+  isAlive: boolean
+}
 
 const EMPTY_GAME_FIELD: IGameGrid[] = [
   {
@@ -94,6 +103,9 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   const [isMoveRevealed, setIsMoveRevealed] = useState(false);
   const [isOpponentDeployed, setIsOpponentDeployed] = useState(false);
   const [isOpponentRevealed, setIsOpponentRevealed] = useState(false);
+
+  const [winner, setWinner] = useState("");
+  const [battleLog, setBattleLog] = useState([]);
 
   const deployPlayfieldFunction = useContractFunction(
     zkAutoChessContract,
@@ -186,19 +198,188 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
     )
       return;
     try {
-      const battle = zkAutoChessContract.getBattle(battleId);
-      const playerAState = zkAutoChessContract.getBattlePlayerState(
+      const battle = await zkAutoChessContract.getBattle(battleId);
+      const playerAState = await zkAutoChessContract.getBattlePlayerState(
         battleId,
         battle["playerA"]
       );
-      const playerBState = zkAutoChessContract.getBattlePlayerState(
+      const playerBState = await zkAutoChessContract.getBattlePlayerState(
         battleId,
         battle["playerB"]
       );
-      const playerAField = playerAState["field"];
-      const playerBField = playerBState["field"];
-      console.log(playerAField);
-      console.log(playerBField);
+      let teamA: Array<BattleGamePiece> = [];
+      let teamB: Array<BattleGamePiece> = [];
+      let isOccupied = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+      ];
+      for (let i = 0; i < 8; ++i) {
+        const playerAGamePiece =
+          gamePieceMapping[playerAState["field"][7 - i].toNumber() - 1];
+        if (playerAGamePiece) {
+          let x = i % 4;
+          let y = floor(i / 4);
+          isOccupied[y][x] = 1;
+          const positionedGamePieceA = {
+            position: { x: x, y: y },
+            target: -1,
+            isAlive: true,
+            ...playerAGamePiece,
+          };
+          teamA.push(positionedGamePieceA);
+        }
+
+        const playerBGamePiece =
+          gamePieceMapping[playerBState["field"][i].toNumber() - 1];
+        if (playerBGamePiece) {
+          let x = i % 4;
+          let y = floor(2 + i / 4);
+          isOccupied[y][x] = 1;
+          const positionedGamePieceB = {
+            position: { x: x, y: y },
+            target: -1,
+            isAlive: true,
+            ...playerBGamePiece,
+          };
+          teamB.push(positionedGamePieceB);
+        }
+      }
+      let battleLog: string[] = [];
+      let teamARemaining = teamA.length;
+      let teamBRemaining = teamB.length;
+      while (teamARemaining > 0 && teamBRemaining > 0) {
+        for (let i = 0; i < teamA.length; ++i) {
+          if (teamA[i].isAlive && teamA[i].health <= 0) {
+            isOccupied[teamA[i].position.y][teamA[i].position.x] = 0;
+            teamA[i].isAlive = false;
+            teamARemaining -= 1;
+          } else {
+            if (teamA[i].target < 0) {
+              let minDistance = -1;
+              for (let j = 0; j < teamB.length; ++j) {
+                let distance = Math.sqrt(
+                  Math.pow(teamB[j].position.x - teamA[i].position.x, 2) +
+                    Math.pow(teamB[j].position.y - teamA[i].position.y, 2)
+                );
+                if (
+                  distance <= teamA[i].range &&
+                  (distance < minDistance || minDistance < 0)
+                )
+                  teamA[i].target = j;
+              }
+            }
+            if (teamA[i].target >= 0) {
+              // Attack
+              teamB[teamA[i].target].health -= teamA[i].attack;
+              battleLog.push(
+                `${teamA[i].pieceName} A${i} deal ${
+                  teamA[i].attack
+                } damage to ${teamB[teamA[i].target].pieceName} B${
+                  teamA[i].target
+                }`
+              );
+              if (teamB[teamA[i].target].health <= 0) teamA[i].target = -1
+            } else {
+              // Move
+              let x = teamA[i].position.x;
+              let y = teamA[i].position.y;
+              if (y + 1 < 4) {
+                if (isOccupied[y + 1][x] <= 0) {
+                  isOccupied[y][x] = 0;
+                  isOccupied[y + 1][x] = 1;
+                  teamA[i].position.y = y + 1;
+                }
+              } else {
+                if (x - 1 >= 0) {
+                  if (isOccupied[y][x - 1] <= 0) {
+                    isOccupied[y][x] = 0;
+                    isOccupied[y][x - 1] = 1;
+                    teamA[i].position.x = x - 1;
+                  }
+                }
+                if (x + 1 < 4) {
+                  if (isOccupied[y][x + 1] <= 0) {
+                    isOccupied[y][x] = 0;
+                    isOccupied[y][x + 1] = 1;
+                    teamA[i].position.x = x + 1;
+                  }
+                }
+              }
+              battleLog.push(
+                `${teamA[i].pieceName} A${i} moved to (${teamA[i].position.x}, ${teamA[i].position.y})`
+              );
+            }
+          }
+        }
+        for (let j = 0; j < teamB.length; ++j) {
+          if (teamB[j].isAlive && teamB[j].health <= 0) {
+            isOccupied[teamB[j].position.y][teamB[j].position.x] = 0;
+            teamB[j].isAlive = false;
+            teamBRemaining -= 1;
+          } else {
+            if (teamB[j].target < 0) {
+              let minDistance = -1;
+              for (let k = 0; k < teamA.length; ++k) {
+                let distance = Math.sqrt(
+                  Math.pow(teamA[k].position.x - teamB[j].position.x, 2) +
+                    Math.pow(teamA[k].position.y - teamB[j].position.y, 2)
+                );
+                if (
+                  distance <= teamB[j].range &&
+                  (distance < minDistance || minDistance < 0)
+                )
+                  teamB[j].target = k;
+              }
+            }
+            if (teamB[j].target >= 0) {
+              // Attack
+              teamA[teamB[j].target].health -= teamB[j].attack;
+              battleLog.push(
+                `${teamB[j].pieceName} B${j} deal ${
+                  teamB[j].attack
+                } damage to ${teamA[teamB[j].target].pieceName} A${
+                  teamB[j].target
+                }`
+              );
+              if (teamA[teamB[j].target].health <= 0) teamB[j].target = -1
+            } else {
+              // Move
+              let x = teamB[j].position.x;
+              let y = teamB[j].position.y;
+              if (y - 1 >= 0) {
+                if (isOccupied[y - 1][x] <= 0) {
+                  isOccupied[y][x] = 0;
+                  isOccupied[y - 1][x] = 1;
+                  teamB[j].position.y = y - 1;
+                }
+              } else {
+                if (x - 1 >= 0) {
+                  if (isOccupied[y][x - 1] <= 0) {
+                    isOccupied[y][x] = 0;
+                    isOccupied[y][x - 1] = 1;
+                    teamB[j].position.x = x - 1;
+                  }
+                }
+                if (x + 1 < 4) {
+                  if (isOccupied[y][x + 1] <= 0) {
+                    isOccupied[y][x] = 0;
+                    isOccupied[y][x + 1] = 1;
+                    teamB[j].position.x = x + 1;
+                  }
+                }
+              }
+              battleLog.push(
+                `${teamB[j].pieceName} B${j} moved to (${teamB[j].position.x}, ${teamB[j].position.y})`
+              );
+            }
+          }
+        }
+      }
+
+      setWinner(teamARemaining > 0 ? "Player A" : "Player B");
+      setBattleLog(battleLog);
     } catch (error) {
       console.log(error);
     }
@@ -247,8 +428,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           }
         );
         setPlayfield(playerPlayfield);
-        setIsMoveDeployed(true);
-      } else {
+        setIsMoveRevealed(true);
       }
     } catch (error) {
       console.log(error);
@@ -347,7 +527,6 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           };
         }
       );
-
       setRemainingCost(battleCache.remainingCost);
       setPlayfield(playfield);
       setIsMoveDeployed(true);
@@ -356,7 +535,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
 
   return (
     <Center p={"10px"}>
-      <VStack>
+      <VStack w={"512px"}>
         <Flex width={"100%"} justifyContent={"center"} p="2">
           <Box>
             <IconButton
@@ -426,13 +605,15 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           <HStack>
             {isMoveDeployed ? (
               isMoveRevealed && isOpponentRevealed ? (
-                <Button
-                  colorScheme={"green"}
-                  onClick={onBattleClick}
-                  minW={"100px"}
-                >
-                  Battle
-                </Button>
+                !winner && (
+                  <Button
+                    colorScheme={"green"}
+                    onClick={onBattleClick}
+                    minW={"100px"}
+                  >
+                    Battle
+                  </Button>
+                )
               ) : (
                 !isMoveRevealed && (
                   <Button
@@ -464,34 +645,49 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
             )}
           </HStack>
         </Box>
-        <Heading mt={"15px"}>Remaining Cost: {remainingCost}</Heading>
-        <TableContainer>
-          <Table size={"sm"}>
-            <Thead>
-              <Tr>
-                <Th>Piece</Th>
-                <Th isNumeric>Health</Th>
-                <Th isNumeric>Attack</Th>
-                <Th isNumeric>Range</Th>
-                <Th isNumeric>Cost</Th>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {gamePieceMapping.map((gamePiece, index) => {
-                return (
-                  <GamePieceTableRow
-                    key={index}
-                    gamePiece={gamePiece}
-                    activeGridIndex={activeGridIndex}
-                    remainingCost={remainingCost}
-                    handlePieceSelect={handlePieceSelect}
-                  />
-                );
-              })}
-            </Tbody>
-          </Table>
-        </TableContainer>
+        {isMoveDeployed ? (
+          winner && (
+            <>
+              <Heading mt={"15px"}>Winner: {winner}</Heading>
+              <UnorderedList>
+                {battleLog.map((log: string, index: number) => {
+                  return <ListItem key={`log_${index}`}>{log}</ListItem>;
+                })}
+              </UnorderedList>
+            </>
+          )
+        ) : (
+          <>
+            <Heading mt={"15px"}>Remaining Cost: {remainingCost}</Heading>
+            <TableContainer>
+              <Table size={"sm"}>
+                <Thead>
+                  <Tr>
+                    <Th>Piece</Th>
+                    <Th isNumeric>Health</Th>
+                    <Th isNumeric>Attack</Th>
+                    <Th isNumeric>Range</Th>
+                    <Th isNumeric>Cost</Th>
+                    <Th></Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {gamePieceMapping.map((gamePiece, index) => {
+                    return (
+                      <GamePieceTableRow
+                        key={index}
+                        gamePiece={gamePiece}
+                        activeGridIndex={activeGridIndex}
+                        remainingCost={remainingCost}
+                        handlePieceSelect={handlePieceSelect}
+                      />
+                    );
+                  })}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
       </VStack>
     </Center>
   );
