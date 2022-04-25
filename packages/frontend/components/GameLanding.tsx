@@ -1,19 +1,20 @@
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { BigNumber, Contract, utils } from "ethers";
 import {
   Button,
-  Text,
+  Flex,
   Input,
   InputGroup,
   Menu,
   MenuButton,
-  MenuList,
   MenuItem,
-  Flex,
+  MenuList,
+  Text,
   useToast,
 } from "@chakra-ui/react";
 import { useContractFunction, useEthers } from "@usedapp/core";
-import { BigNumber, Contract, utils } from "ethers";
 import { useEffect, useState } from "react";
+
+import { ChevronDownIcon } from "@chakra-ui/icons";
 import useContract from "../hooks/useContract";
 
 type GameLandingProps = {
@@ -22,7 +23,8 @@ type GameLandingProps = {
 
 const GameLanding = ({ handleBattleJoin }: GameLandingProps) => {
   const toast = useToast();
-  const zkAutoChessContract = useContract();
+  const { account } = useEthers();
+  const { zkAutoChessContract } = useContract();
 
   const [playerBattleIds, setPlayerBattleIds] = useState<number[]>([]);
   const [inputBattleId, setInputBattleId] = useState(1);
@@ -44,7 +46,7 @@ const GameLanding = ({ handleBattleJoin }: GameLandingProps) => {
     try {
       createBattleFunction.send();
     } catch (error) {
-      console.log(error.errorArgs[0]);
+      console.log(error);
     }
   };
 
@@ -53,7 +55,7 @@ const GameLanding = ({ handleBattleJoin }: GameLandingProps) => {
       const battle = await zkAutoChessContract.getBattle(inputBattleId);
       await joinBattleFunction.send(inputBattleId);
     } catch (error) {
-      console.log(error.errorArgs[0]);
+      console.log(error);
     }
   };
 
@@ -79,6 +81,7 @@ const GameLanding = ({ handleBattleJoin }: GameLandingProps) => {
           duration: 5000,
           isClosable: true,
         });
+        getPlayerBattles();
         break;
       case "Mining":
         toast({
@@ -144,9 +147,9 @@ const GameLanding = ({ handleBattleJoin }: GameLandingProps) => {
   }, [joinBattleFunction.state]);
 
   useEffect(() => {
-    if (!zkAutoChessContract) return;
+    if (!account || !zkAutoChessContract) return;
     getPlayerBattles();
-  }, [zkAutoChessContract]);
+  }, [account, zkAutoChessContract]);
 
   return (
     <Flex direction={"column"} align={"center"} py={4}>

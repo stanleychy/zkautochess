@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
+
 import { useEthers } from "@usedapp/core";
-import { useState, useEffect } from "react";
 
 export type BattleCache = {
   hash: bigint;
@@ -16,9 +17,10 @@ export const usePlayerCache = () => {
   const { account } = useEthers();
   const [playerCache, setPlayerCache] = useState<PlayerCache>({});
 
-  const updatePlayerCache = (newPlayerCache: PlayerCache) => {
-    setPlayerCache(newPlayerCache);
-    window.localStorage.setItem(account, JSON.stringify(newPlayerCache));
+  const updatePlayerLocalStorageCache = () => {
+    console.log("Update Cache")
+    console.log(JSON.stringify(playerCache))
+    window.localStorage.setItem(account.toLowerCase(), JSON.stringify(playerCache));
   };
 
   useEffect(() => {
@@ -29,5 +31,5 @@ export const usePlayerCache = () => {
     }
   }, []);
 
-  return { playerCache, updatePlayerCache };
+  return { playerCache, setPlayerCache, updatePlayerLocalStorageCache };
 };

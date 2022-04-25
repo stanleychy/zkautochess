@@ -1,10 +1,17 @@
+import { ArrowBackIcon, RepeatIcon } from "@chakra-ui/icons";
+import {
+  BattleCache,
+  PlayerCache,
+  usePlayerCache,
+} from "../hooks/usePlayerCache";
+import { BigNumber, Contract, ethers } from "ethers";
 import {
   Box,
   Center,
   Divider,
   Flex,
-  Heading,
   HStack,
+  Heading,
   SimpleGrid,
   Spacer,
   VStack,
@@ -22,23 +29,16 @@ import {
   Tr,
   useToast,
 } from "@chakra-ui/react";
-import GameGrid from "./Playfield/GameGrid";
-import gamePieceMapping from "./GamePiece/GamePieceMapping";
-import { useEffect, useState } from "react";
-import GamePieceTableRow from "./GamePieceTableRow";
-import IGamePiece from "./GamePiece/IGamePiece";
-import IGameGrid from "./Playfield/IGameGrid";
 import { useContractFunction, useEthers } from "@usedapp/core";
-import { ArrowBackIcon, RepeatIcon } from "@chakra-ui/icons";
-import { connectContract, deploy } from "../contracts/zkAutoChess";
-import { BigNumber, Contract, ethers } from "ethers";
+import { useEffect, useState } from "react";
+
+import GameGrid from "./Playfield/GameGrid";
+import GamePieceTableRow from "./GamePieceTableRow";
+import IGameGrid from "./Playfield/IGameGrid";
+import IGamePiece from "./GamePiece/IGamePiece";
+import gamePieceMapping from "./GamePiece/GamePieceMapping";
 import generateCalldata from "../scripts/generate_calldata";
 import useContract from "../hooks/useContract";
-import {
-  BattleCache,
-  PlayerCache,
-  usePlayerCache,
-} from "../hooks/usePlayerCache";
 
 type GameContentProps = {
   battleId: number;
@@ -77,8 +77,9 @@ const COST = 8;
 const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   const { account } = useEthers();
   const toast = useToast();
-  const zkAutoChessContract = useContract();
-  const { playerCache, updatePlayerCache } = usePlayerCache();
+  const { zkAutoChessContract } = useContract();
+  const { playerCache, setPlayerCache, updatePlayerLocalStorageCache } =
+    usePlayerCache();
 
   const [playfield, setPlayfield] = useState<IGameGrid[]>(EMPTY_GAME_FIELD);
   const [opponentPlayfield, setOpponentPlayfield] =
@@ -155,7 +156,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
         playfield: field,
         salt: salt,
       };
-      updatePlayerCache(newPlayerCache);
+      setPlayerCache(newPlayerCache);
     } catch (error) {
       console.log(error);
     }
@@ -176,30 +177,78 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
     }
   };
 
+  const onBattleClick = async () => {
+    if (
+      !account ||
+      !zkAutoChessContract ||
+      !isMoveRevealed ||
+      !isOpponentRevealed
+    )
+      return;
+    try {
+      const battle = zkAutoChessContract.getBattle(battleId);
+      const playerAState = zkAutoChessContract.getBattlePlayerState(
+        battleId,
+        battle["playerA"]
+      );
+      const playerBState = zkAutoChessContract.getBattlePlayerState(
+        battleId,
+        battle["playerB"]
+      );
+      const playerAField = playerAState["field"];
+      const playerBField = playerBState["field"];
+      console.log(playerAField);
+      console.log(playerBField);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleBattleRefresh = async () => {
     if (!account || !zkAutoChessContract) return;
     try {
       const battle = await zkAutoChessContract.getBattle(battleId);
-      setIsRevealState(battle.canReveal);
-      if (battle.canReveal) {
-        const opponentAddress =
-          account == battle.playerA ? battle.playerB : battle.playerA;
-        const opponentState = await zkAutoChessContract.getBattlePlayerState(
-          battleId,
-          opponentAddress
+      if (battle.canReveal) setIsRevealState(battle.canReveal);
+
+      const opponentAddress =
+        account == battle.playerA ? battle.playerB : battle.playerA;
+      const opponentState = await zkAutoChessContract.getBattlePlayerState(
+        battleId,
+        opponentAddress
+      );
+      if (opponentState.fieldHash > BigNumber.from("0"))
+        setIsOpponentDeployed(true);
+      if (opponentState.field.length > 0) {
+        const opponentPlayfield = opponentState.field.map(
+          (gamePieceId: BigNumber) => {
+            const gamePiece =
+              gamePieceMapping[gamePieceId.toNumber() - 1] ?? undefined;
+            return {
+              gamePiece: gamePiece,
+            };
+          }
         );
-        if (opponentState) {
-          const opponentPlayfield = opponentState.field.map(
-            (gamePieceId: BigNumber) => {
-              const gamePiece =
-                gamePieceMapping[gamePieceId.toNumber() - 1] ?? undefined;
-              return {
-                gamePiece: gamePiece,
-              };
-            }
-          );
-          setOpponentPlayfield(opponentPlayfield.reverse());
-        }
+        setOpponentPlayfield(opponentPlayfield.reverse());
+        setIsOpponentRevealed(true);
+      }
+      const playerState = await zkAutoChessContract.getBattlePlayerState(
+        battleId,
+        account
+      );
+      if (playerState.fieldHash > BigNumber.from("0")) setIsMoveDeployed(true);
+      if (playerState.field.length > 0) {
+        const playerPlayfield = playerState.field.map(
+          (gamePieceId: BigNumber) => {
+            const gamePiece =
+              gamePieceMapping[gamePieceId.toNumber() - 1] ?? undefined;
+            return {
+              gamePiece: gamePiece,
+            };
+          }
+        );
+        setPlayfield(playerPlayfield);
+        setIsMoveDeployed(true);
+      } else {
       }
     } catch (error) {
       console.log(error);
@@ -209,13 +258,14 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   useEffect(() => {
     switch (deployPlayfieldFunction.state.status) {
       case "Success":
-        setIsMoveDeployed(true);
         toast({
           title: "Playfield Deployed",
           status: "success",
           duration: 5000,
           isClosable: true,
         });
+        setIsMoveDeployed(true);
+        updatePlayerLocalStorageCache();
         handleBattleRefresh();
         break;
       case "Mining":
@@ -238,6 +288,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           duration: 5000,
           isClosable: true,
         });
+        setIsMoveDeployed(false);
         break;
       default:
         break;
@@ -282,6 +333,7 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
   }, [revealPlayfieldFunction.state]);
 
   useEffect(() => {
+    handleBattleRefresh();
     const battleCache: BattleCache = playerCache[battleId];
     if (battleCache) {
       const playfield: IGameGrid[] = battleCache.playfield.map(
@@ -295,10 +347,12 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           };
         }
       );
+
       setRemainingCost(battleCache.remainingCost);
       setPlayfield(playfield);
+      setIsMoveDeployed(true);
     }
-  }, [playerCache]);
+  }, [playerCache, account, battleId, zkAutoChessContract]);
 
   return (
     <Center p={"10px"}>
@@ -314,7 +368,11 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
           <Spacer />
           <Flex>
             <Text fontSize="xl" mr={2}>{`Battle ID: ${battleId} - ${
-              isRevealState ? "Reveal" : "Deploy"
+              isRevealState
+                ? isMoveRevealed && isOpponentRevealed
+                  ? "Battle"
+                  : "Reveal"
+                : "Deploy"
             } Phase`}</Text>
             <IconButton
               aria-label="refresh"
@@ -366,14 +424,26 @@ const GameContent = ({ battleId, handleBackButtonClick }: GameContentProps) => {
         </SimpleGrid>
         <Box my={"20px"}>
           <HStack>
-            {isRevealState ? (
-              <Button
-                colorScheme={"green"}
-                onClick={onRevealClick}
-                minW={"100px"}
-              >
-                Reveal
-              </Button>
+            {isMoveDeployed ? (
+              isMoveRevealed && isOpponentRevealed ? (
+                <Button
+                  colorScheme={"green"}
+                  onClick={onBattleClick}
+                  minW={"100px"}
+                >
+                  Battle
+                </Button>
+              ) : (
+                !isMoveRevealed && (
+                  <Button
+                    colorScheme={"green"}
+                    onClick={onRevealClick}
+                    minW={"100px"}
+                  >
+                    Reveal
+                  </Button>
+                )
+              )
             ) : (
               <>
                 <Button
