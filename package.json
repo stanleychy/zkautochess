@@ -3,14 +3,28 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "frontend:dev": "yarn workspace frontend next",
-    "frontend:build": "yarn workspace frontend next build",
-    "frontend:start": "yarn workspace frontend next start",
-    "frontend:type-check": "yarn workspace frontend tsc"
+    "frontend:dev": "yarn workspace @zkautochess/frontend next",
+    "frontend:build": "yarn workspace @zkautochess/frontend next build",
+    "frontend:start": "yarn workspace @zkautochess/frontend next start",
+    "frontend:type-check": "yarn workspace @zkautochess/frontend tsc",
+    "hardhat:chain": "yarn workspace @zkautochess/hardhat chain",
+    "hardhat:accounts": "yarn workspace @zkautochess/hardhat accounts",
+    "hardhat:test": "yarn workspace @zkautochess/hardhat test",
+    "hardhat:deploy:local": "yarn workspace @zkautochess/hardhat deploy:local",
+    "hardhat:compile": "yarn workspace @zkautochess/hardhat compile",
+    "hardhat:prettier": "yarn workspace @zkautochess/hardhat prettier",
+    "hardhat:clean": "yarn workspace @zkautochess/hardhat clean",
+    "hardhat:coverage": "yarn workspace @zkautochess/hardhat coverage",
+    "hardhat:eslint": "yarn workspace @zkautochess/hardhat eslint",
+    "hardhat:solhint": "yarn workspace @zkautochess/hardhat solhint"
   },
   "workspaces": {
     "packages": [
       "packages/*"
     ]
+  },
+  "dependencies": {
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.2"
   }
 }

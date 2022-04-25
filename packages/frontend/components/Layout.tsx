@@ -1,18 +1,16 @@
-import { Center } from "@chakra-ui/react";
 import Head from "next/head";
 import { ReactNode } from "react";
 import Footer from "./Footer";
-import Navbar from "./Navbar";
+import Navbar from "./navbar/Navbar";
 import {
   Mainnet,
   Harmony,
-  Hardhat,
   DAppProvider,
-  useEtherBalance,
-  useEthers,
   Config,
+  DEFAULT_SUPPORTED_CHAINS,
 } from "@usedapp/core";
 import { getDefaultProvider } from "ethers";
+import { HarmonyTestnet } from "../scripts/harmonyTestnet";
 
 type LayoutProps = {
   children?: ReactNode;
@@ -21,12 +19,12 @@ type LayoutProps = {
 
 const Layout = ({ children, title = "zkAutoChess" }: LayoutProps) => {
   const config: Config = {
-    readOnlyChainId: Harmony.chainId,
+    readOnlyChainId: HarmonyTestnet.chainId,
     readOnlyUrls: {
-      [Mainnet.chainId]: getDefaultProvider("mainnet"),
-      // [Harmony.chainId]: getDefaultProvider("mainnet"),
-      // [Hardhat.chainId]: getDefaultProvider("mainnet"),
+      // [Mainnet.chainId]: getDefaultProvider("mainnet"),
+      [HarmonyTestnet.chainId]: "https://api.s0.b.hmny.io",
     },
+    networks: [...DEFAULT_SUPPORTED_CHAINS, HarmonyTestnet],
     autoConnect: false,
   };
 
@@ -40,7 +38,7 @@ const Layout = ({ children, title = "zkAutoChess" }: LayoutProps) => {
       <header>
         <Navbar />
       </header>
-      <main style={{ minHeight: "90vh" }}>{children}</main>
+      <main style={{ minHeight: "90vh", overflow: "hidden" }}>{children}</main>
       <Footer />
     </DAppProvider>
   );

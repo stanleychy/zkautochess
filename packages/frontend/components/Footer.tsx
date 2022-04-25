@@ -1,10 +1,11 @@
-import { Center, Divider } from "@chakra-ui/react";
+import { Center, Divider, Icon } from "@chakra-ui/react";
+import { GoMarkGithub } from "react-icons/go";
 
 const Footer = () => {
   return (
     <footer>
-      <Divider />
-      <Center>Developed by HKerStanley</Center>
+      {/* <Divider />
+      <Center p={"1rem"}></Center> */}
     </footer>
   );
 };
