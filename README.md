@@ -22,7 +22,9 @@
 
 ## About
 
-Auto Chess was originated from a custom map created by Drodo Games for Dota 2. The game consist of 2 players deploying pieces on the board, and when both done the deployment chess pieces will battle automatically. The simple gamplay is getting popular while famous game studios making their own version, for example Teamfight Tatics in League of Legends or Clash Mini developed by Supercell. The game is not possible on chain without zero knowledge as both players will be able to see each others setup which take away a lot of fun.
+Auto Chess was originated from a custom map created by Drodo Games for Dota 2. The game consist of 2 players deploying pieces on the board, and when both done the deployment chess pieces will battle automatically. The simple gamplay is getting popular while famous game studios making their own version, for example Teamfight Tatics in League of Legends or Clash Mini developed by Supercell. 
+
+This project is trying to implement the game fully on-chain. Players' move will be verified, sealed and committed on-chain so no centralized judge is needed while no player can cheat.
 
 ### Use Cases
 
@@ -43,8 +45,14 @@ We are not able to find a lot of existing zero knowledge games at the moment. Wh
 
 ## Roadmap
 
-The first version of zkAutoChess will be as simple as deploy and battle auto chess game that is fully on chain. While the auto battling logic can get very complicated we are going to keep pieces simple but extensible. We are going to add more different pieces to make the gameplay rich and allow players to explore different strategies.
+The first version of the game covered on-chain match-making, gamepiece deploying and revealing. Battle logic is done off-chain for now but the rule should be simple and deterministic, so that from the given committed move of both players the battle result should be always the same.
 
+- [ ] Battle logic optimization and bug fixing
+- [ ] Visual display for battle and result
+- [ ] Battle logic on-chain
+- [ ] Make gamepiece NFT
+- [ ] System design of game, e.g. game balancing, fee, prize, etc.
+- [ ] More features...
 ## License
 
 This project is licensed under the **GNU General Public License v3.0**.
