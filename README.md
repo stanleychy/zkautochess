@@ -5,7 +5,6 @@
   <p>An on-chain auto chess battle game secured by zero-knowledge proof</p>
 </h1>
 
-
 <details open="open">
 <summary>Table of Contents</summary>
 
@@ -22,7 +21,7 @@
 
 ## About
 
-Auto Chess was originated from a custom map created by Drodo Games for Dota 2. The game consist of 2 players deploying pieces on the board, and when both done the deployment chess pieces will battle automatically. The simple gamplay is getting popular while famous game studios making their own version, for example Teamfight Tatics in League of Legends or Clash Mini developed by Supercell. 
+Auto Chess was originated from a custom map created by Drodo Games for Dota 2. The game consist of 2 players deploying pieces on the board, and when both done the deployment chess pieces will battle automatically. The simple gamplay is getting popular while famous game studios making their own version, for example Teamfight Tatics in League of Legends or Clash Mini developed by Supercell.
 
 This project is trying to implement the game fully on-chain. Players' move will be verified, sealed and committed on-chain so no centralized judge is needed while no player can cheat.
 
@@ -41,7 +40,7 @@ We are not able to find a lot of existing zero knowledge games at the moment. Wh
 | Network         | ChainId    | zkAutoChess                                  | Verifier                                     |
 | --------------- | ---------- | -------------------------------------------- | -------------------------------------------- |
 | Harmony Testnet | 1666700000 | `0x391FfC9F5fAd80EDF40fdd73387052BA4A000270` | `0x3A06F30C2E9a364838881114AaF724a8D5004098` |
-| Harmony Mainnet | 1666600000 | TODO                                         | TODO                                         |
+| Harmony Mainnet | 1666600000 | `0xbfD0C691582c6A9172b166Ba979A595BAB16F9af` | `0xdb06Ca2A38f20b965A5201c898E819FcAA349BC6` |
 
 ## Roadmap
 
@@ -53,6 +52,7 @@ The first version of the game covered on-chain match-making, gamepiece deploying
 - [ ] Make gamepiece NFT
 - [ ] System design of game, e.g. game balancing, fee, prize, etc.
 - [ ] More features...
+
 ## License
 
 This project is licensed under the **GNU General Public License v3.0**.
