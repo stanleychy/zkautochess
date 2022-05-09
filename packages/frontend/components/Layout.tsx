@@ -1,16 +1,14 @@
-import Head from "next/head";
-import { ReactNode } from "react";
-import Footer from "./Footer";
-import Navbar from "./navbar/Navbar";
 import {
-  Mainnet,
-  Harmony,
-  DAppProvider,
   Config,
-  DEFAULT_SUPPORTED_CHAINS,
+  DAppProvider,
+  Harmony,
 } from "@usedapp/core";
-import { getDefaultProvider } from "ethers";
+
+import Footer from "./Footer";
 import { HarmonyTestnet } from "../scripts/harmonyTestnet";
+import Head from "next/head";
+import Navbar from "./navbar/Navbar";
+import { ReactNode } from "react";\
 
 type LayoutProps = {
   children?: ReactNode;
@@ -19,12 +17,12 @@ type LayoutProps = {
 
 const Layout = ({ children, title = "zkAutoChess" }: LayoutProps) => {
   const config: Config = {
-    readOnlyChainId: HarmonyTestnet.chainId,
+    readOnlyChainId: process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? HarmonyTestnet.chainId : Harmony.chainId,
     readOnlyUrls: {
-      // [Mainnet.chainId]: getDefaultProvider("mainnet"),
+      [Harmony.chainId]: "https://api.harmony.one",
       [HarmonyTestnet.chainId]: "https://api.s0.b.hmny.io",
     },
-    networks: [...DEFAULT_SUPPORTED_CHAINS, HarmonyTestnet],
+    networks: [Harmony, HarmonyTestnet],
     autoConnect: false,
   };
 
