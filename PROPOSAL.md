@@ -32,7 +32,7 @@ This ask will be in line with the laid down milestones as detailed below
 | ---------------------- | ---------- | ------ |
 | Testnet launch         | April 25th | Done   |
 | Beta Testing and Fixes | May 9th    | Done   |
-| Mainnet Launch         | May 9th    | Pending   |
+| Mainnet Launch         | May 9th    | Done   |
 
 The first version of the game covered on-chain match-making, gamepiece deploying and revealing. Battle logic is done off-chain for now but the rule should be simple and deterministic, so that from the given committed move of both players the battle result should be always the same.
 
@@ -49,5 +49,5 @@ The first version of the game covered on-chain match-making, gamepiece deploying
 - [zkAutoChess Client](https://zkautochess.vercel.app/)
 - [zkAutoChess Contract (Testnet)](https://explorer.testnet.harmony.one/address/0x391ffc9f5fad80edf40fdd73387052ba4a000270)
 - [Verifier Contract (Testnet)](https://explorer.testnet.harmony.one/address/0x3a06f30c2e9a364838881114aaf724a8d5004098)
-- [zkAutoChess Contract (Mainnet)]()
-- [Verifier Contract (Mainnet)]()
+- [zkAutoChess Contract (Mainnet)](https://explorer.harmony.one/address/0xbfd0c691582c6a9172b166ba979a595bab16f9af)
+- [Verifier Contract (Mainnet)](https://explorer.harmony.one/address/0xdb06ca2a38f20b965a5201c898e819fcaa349bc6)
