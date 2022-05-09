@@ -8,7 +8,7 @@ import Footer from "./Footer";
 import { HarmonyTestnet } from "../scripts/harmonyTestnet";
 import Head from "next/head";
 import Navbar from "./navbar/Navbar";
-import { ReactNode } from "react";\
+import { ReactNode } from "react";
 
 type LayoutProps = {
   children?: ReactNode;
