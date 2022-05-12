@@ -44,13 +44,21 @@ We are not able to find a lot of existing zero knowledge games at the moment. Wh
 
 ## Roadmap
 
+| Objective                 | Date       | Status  |
+| ------------------------- | ---------- | ------- |
+| Testnet launch            | April 25th | Done    |
+| Beta Testing and Fixes    | May 9th    | Done    |
+| Mainnet Launch            | May 9th    | Done    |
+| Smart Contract Audit      | June 19th  | Pending |
+| Improvement and Bug Fixes | July 19th  | Pending |
+| DAO and Socials Setup     | Aug 30th   | Pending |
+
 The first version of the game covered on-chain match-making, gamepiece deploying and revealing. Battle logic is done off-chain for now but the rule should be simple and deterministic, so that from the given committed move of both players the battle result should be always the same.
 
-- [ ] Battle logic optimization and bug fixing
 - [ ] Visual display for battle and result
 - [ ] Battle logic on-chain
 - [ ] Make gamepiece NFT
-- [ ] System design of game, e.g. game balancing, fee, prize, etc.
+- [ ] Gmae/System design, e.g. game balancing, fee, prize, etc.
 - [ ] More features...
 
 ## License
